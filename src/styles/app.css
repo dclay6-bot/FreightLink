@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-navy: #0F1B2D;
+  --color-brand-amber: #F59E0B;
+  --color-brand-steel: #64748B;
+  --color-off-white: #F8FAFC;
+  --color-charcoal: #1E293B;
+  --color-light-gray: #E2E8F0;
+  --color-success-green: #10B981;
+  --color-alert-red: #EF4444;
+  --color-info-blue: #3B82F6;
+
+  --font-family-sans: "Inter", "system-ui", "sans-serif";
+  --font-family-mono: "JetBrains Mono", "monospace";
+
+  --gradient-primary: linear-gradient(135deg, #0F1B2D 0%, #1E3A5F 50%, #0F1B2D 100%);
+  --gradient-accent: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+}
+
+@layer base {
+  html,
+  body {
+    @apply bg-off-white text-charcoal antialiased;
+  }
+
+  ::selection {
+    @apply bg-brand-amber/20 text-charcoal;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-navy px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-navy/90 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border-2 border-brand-navy bg-white px-6 py-3 text-sm font-semibold text-brand-navy transition-all duration-200 hover:bg-brand-navy hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy;
+  }
+
+  .btn-cta {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-amber px-8 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-amber/90 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-amber;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-brand-navy transition-colors duration-200 hover:bg-brand-navy/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy;
+  }
+
+  .card {
+    @apply rounded-xl border border-light-gray bg-white p-6 transition-shadow duration-200 hover:shadow-lg;
+  }
+
+  .badge-success {
+    @apply inline-flex items-center rounded-full bg-success-green/10 px-2.5 py-0.5 text-xs font-medium text-success-green;
+  }
+
+  .badge-alert {
+    @apply inline-flex items-center rounded-full bg-alert-red/10 px-2.5 py-0.5 text-xs font-medium text-alert-red;
+  }
+
+  .badge-info {
+    @apply inline-flex items-center rounded-full bg-info-blue/10 px-2.5 py-0.5 text-xs font-medium text-info-blue;
+  }
+
+  .section-padding {
+    @apply px-6 py-16 md:py-24;
+  }
+
+  .container-section {
+    @apply mx-auto max-w-7xl;
+  }
+}

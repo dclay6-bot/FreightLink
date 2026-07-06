@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" fill="none">
+  <g transform="translate(10, 20)">
+    <rect x="0" y="30" width="70" height="6" rx="3" fill="#FFFFFF"/>
+    <rect x="0" y="50" width="70" height="6" rx="3" fill="#FFFFFF"/>
+    <circle cx="35" cy="10" r="8" stroke="#FFFFFF" stroke-width="4" fill="none"/>
+    <circle cx="35" cy="70" r="8" stroke="#FFFFFF" stroke-width="4" fill="none"/>
+    <rect x="31" y="16" width="8" height="46" rx="4" fill="#FFFFFF"/>
+    <polygon points="60,40 72,32 72,48" fill="#FFFFFF"/>
+  </g>
+  <text x="95" y="65" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-weight="700" font-size="36" fill="#FFFFFF" letter-spacing="-1">Freight</text>
+  <text x="95" y="95" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-weight="600" font-size="20" fill="#F59E0B" letter-spacing="2">LINK</text>
+</svg>
