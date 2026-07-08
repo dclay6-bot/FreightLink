@@ -1,4 +1,4 @@
-import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
+import { Link, createFileRoute, useRouter, useSearch } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
@@ -6,8 +6,16 @@ import {
   createLoad,
   getLoadsByShipper,
   getContractsByShipper,
+  getContractsByLoad,
   getUserByClerkId,
   createUser,
+  updateLoad,
+  updateContractStatus,
+  updateLoadStatus,
+  ensureDemoUsers,
+  getDemoUserByRole,
+  DEMO_CLERK_ID,
+  DEMO_SHIPPER_ID,
   type Load,
   type Contract,
 } from "~/lib/db";
@@ -77,6 +85,50 @@ const postNewLoad = createServerFn({ method: "POST" }).handler(async (data: unkn
   return createLoad({ ...loadData, shipper_id: user.id });
 });
 
+const updateLoadTrackInfo = createServerFn({ method: "POST" }).handler(async (data: unknown) => {
+  const { loadId, trackingInfo, clerkId } = data as { loadId: string; trackingInfo: string; clerkId: string };
+
+  let user = getUserByClerkId(clerkId);
+  if (!user) throw new Error("Unauthorized");
+  if (user.role !== "shipper") throw new Error("Only shippers can update tracking info");
+
+  const load = getLoadsByShipper(user.id).find((l) => l.id === loadId);
+  if (!load) throw new Error("Load not found or not yours");
+
+  updateLoad(loadId, { tracking_info: trackingInfo });
+  return { success: true };
+});
+
+const updateLoadStatusAction = createServerFn({ method: "POST" }).handler(async (data: unknown) => {
+  const { loadId, status, clerkId } = data as { loadId: string; status: string; clerkId: string };
+
+  let user = getUserByClerkId(clerkId);
+  if (!user) throw new Error("Unauthorized");
+  if (user.role !== "shipper") throw new Error("Only shippers can update load status");
+
+  const load = getLoadsByShipper(user.id).find((l) => l.id === loadId);
+  if (!load) throw new Error("Load not found or not yours");
+
+  updateLoadStatus(loadId, status as Load["status"]);
+
+  // If delivered, also mark contract as completed
+  if (status === "delivered") {
+    const contracts = getContractsByLoad(loadId);
+    for (const contract of contracts) {
+      updateContractStatus(contract.id, "completed");
+    }
+  }
+  // If in_transit, mark contract as active
+  if (status === "in_transit") {
+    const contracts = getContractsByLoad(loadId);
+    for (const contract of contracts) {
+      updateContractStatus(contract.id, "active");
+    }
+  }
+
+  return { success: true };
+});
+
 // ---------------------------------------------------------------------------
 // Route
 // ---------------------------------------------------------------------------
@@ -84,6 +136,9 @@ const postNewLoad = createServerFn({ method: "POST" }).handler(async (data: unkn
 export const Route = createFileRoute("/dashboard/shipper")({
   loader: () => loadShipperStats(),
   component: ShipperDashboard,
+  validateSearch: (search: Record<string, unknown>) => ({
+    demo: search.demo === "true",
+  }),
 });
 
 // ---------------------------------------------------------------------------
@@ -92,6 +147,7 @@ export const Route = createFileRoute("/dashboard/shipper")({
 
 function ShipperDashboard() {
   const { loads: initialLoads, contracts: initialContracts } = Route.useLoaderData();
+  const { demo } = Route.useSearch();
   const { userId } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"overview" | "post" | "loads" | "contracts">("overview");
@@ -103,9 +159,25 @@ function ShipperDashboard() {
   const [totalContracts, setTotalContracts] = useState(0);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Load real data when Clerk userId is available
+  const isDemo = demo === true;
+  const effectiveUserId = isDemo ? DEMO_CLERK_ID + "-shipper" : (userId || "");
+
+  // Load real data when Clerk userId is available (or immediately for demo)
   useEffect(() => {
-    if (userId && !dataLoaded) {
+    if (isDemo) {
+      // Ensure demo users exist in DB
+      ensureDemoUsers();
+      // Load demo data
+      loadShipperData({ clerkId: DEMO_CLERK_ID + "-shipper" }).then((data) => {
+        setLoads(data.loads);
+        setContracts(data.contracts);
+        setActiveLoads(data.activeLoads);
+        setPendingContracts(data.pendingContracts);
+        setTotalLoads(data.totalLoads);
+        setTotalContracts(data.totalContracts);
+        setDataLoaded(true);
+      });
+    } else if (userId && !dataLoaded) {
       loadShipperData({ clerkId: userId }).then((data) => {
         setLoads(data.loads);
         setContracts(data.contracts);
@@ -116,7 +188,7 @@ function ShipperDashboard() {
         setDataLoaded(true);
       });
     }
-  }, [userId, dataLoaded]);
+  }, [userId, dataLoaded, isDemo]);
 
   const refreshData = () => {
     setDataLoaded(false);
@@ -131,25 +203,47 @@ function ShipperDashboard() {
             <Link to="/">
               <img src="/freightlink-logo.svg" alt="FreightLink" className="h-8 w-auto" />
             </Link>
-            <span className="hidden text-sm font-medium text-brand-amber md:inline">
+            <span className="hidden items-center gap-2 text-sm font-medium text-brand-amber md:inline-flex">
               Shipper Dashboard
+              {isDemo && (
+                <span className="rounded-full bg-brand-amber/10 px-2 py-0.5 text-xs font-semibold text-brand-amber">DEMO</span>
+              )}
             </span>
           </div>
-          <Link to="/" className="btn-ghost text-sm">
-            Back to Home
-          </Link>
+          <div className="flex items-center gap-3">
+            {isDemo && (
+              <span className="rounded-lg bg-brand-amber/10 px-3 py-1.5 text-xs font-medium text-brand-amber">
+                Demo Mode — Read-only
+              </span>
+            )}
+            <Link to="/" className="btn-ghost text-sm">
+              Back to Home
+            </Link>
+          </div>
         </div>
       </header>
+
+      {/* Demo banner */}
+      {isDemo && (
+        <div className="bg-brand-amber/10 border-b border-brand-amber/20">
+          <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-6 py-2">
+            <span className="text-sm font-medium text-brand-amber">🔍 Demo Mode</span>
+            <span className="text-sm text-steel">— Read-only preview. No actions are saved.</span>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-7xl px-6 py-8">
         {/* Tab Navigation */}
         <div className="mb-8 flex gap-2 border-b border-light-gray pb-2">
           {[
             { key: "overview" as const, label: "Overview" },
-            { key: "post" as const, label: "Post a Load" },
+            { key: "post" as const, label: "Post a Load", disabled: isDemo },
             { key: "loads" as const, label: "My Loads" },
             { key: "contracts" as const, label: "Contracts" },
-          ].map((tab) => (
+          ]
+            .filter((tab) => !isDemo || tab.key !== "post")
+            .map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -157,7 +251,7 @@ function ShipperDashboard() {
                 activeTab === tab.key
                   ? "border-b-2 border-brand-amber text-brand-navy"
                   : "text-steel hover:text-brand-navy"
-              }`}
+              } ${tab.disabled ? "cursor-not-allowed opacity-50" : ""}`}
             >
               {tab.label}
             </button>
@@ -167,11 +261,11 @@ function ShipperDashboard() {
         {activeTab === "overview" && (
           <OverviewTab activeLoads={activeLoads} pendingContracts={pendingContracts} totalLoads={totalLoads} totalContracts={totalContracts} />
         )}
-        {activeTab === "post" && (
+        {activeTab === "post" && !isDemo && (
           <PostLoadForm clerkId={userId || ""} onSuccess={() => { refreshData(); setActiveTab("loads"); }} />
         )}
         {activeTab === "loads" && (
-          <MyLoadsTab loads={loads} />
+          <MyLoadsTab loads={loads} clerkId={effectiveUserId} onRefresh={refreshData} isDemo={isDemo} />
         )}
         {activeTab === "contracts" && (
           <ContractsTab contracts={contracts} />
@@ -461,7 +555,10 @@ function PostLoadForm({ onSuccess, clerkId }: { onSuccess: () => void; clerkId: 
   );
 }
 
-function MyLoadsTab({ loads }: { loads: Load[] }) {
+function MyLoadsTab({ loads, clerkId, onRefresh, isDemo = false }: { loads: Load[]; clerkId: string; onRefresh: () => void; isDemo?: boolean }) {
+  const [updating, setUpdating] = useState<string | null>(null);
+  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
+
   const statusColors: Record<string, string> = {
     available: "badge-success",
     assigned: "badge-info",
@@ -470,10 +567,36 @@ function MyLoadsTab({ loads }: { loads: Load[] }) {
     cancelled: "badge-alert",
   };
 
+  const handleStatusChange = async (loadId: string, newStatus: string) => {
+    setUpdating(loadId);
+    try {
+      await updateLoadStatusAction({ loadId, status: newStatus, clerkId });
+      onRefresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update status");
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleSaveTracking = async (loadId: string) => {
+    const info = trackingInputs[loadId] || "";
+    setUpdating(loadId);
+    try {
+      await updateLoadTrackInfo({ loadId, trackingInfo: info, clerkId });
+      setTrackingInputs((prev) => ({ ...prev, [loadId]: "" }));
+      onRefresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save tracking info");
+    } finally {
+      setUpdating(null);
+    }
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-semibold text-brand-navy">My Loads</h2>
-      <p className="mt-1 text-sm text-steel">All loads you've posted, organized by status.</p>
+      <p className="mt-1 text-sm text-steel">All loads you've posted. Manage status and tracking info.</p>
 
       {loads.length === 0 ? (
         <div className="card mt-8 text-center">
@@ -503,10 +626,68 @@ function MyLoadsTab({ loads }: { loads: Load[] }) {
                     {load.weight && <span>{load.weight.toLocaleString()} lbs</span>}
                     {load.equipment_type && <span>{load.equipment_type.replace("_", " ")}</span>}
                     <span className="font-medium text-brand-navy">
-                      {load.rate_type === "per_mile" ? "$" : "$"}
-                      {load.rate_amount.toLocaleString()}
+                      ${load.rate_amount.toLocaleString()}
                       {load.rate_type === "per_mile" ? "/mile" : " flat"}
                     </span>
+                  </div>
+
+                  {/* Tracking info */}
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <input
+                      type="text"
+                      placeholder="Tracking number, GPS link, or notes..."
+                      value={trackingInputs[load.id] ?? (load.tracking_info || "")}
+                      onChange={(e) =>
+                        setTrackingInputs((prev) => ({ ...prev, [load.id]: e.target.value }))
+                      }
+                      disabled={isDemo}
+                      className="block w-full max-w-sm rounded-lg border border-light-gray px-3 py-1.5 text-sm focus:border-brand-amber focus:outline-none focus:ring-2 focus:ring-brand-amber/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <button
+                      onClick={() => handleSaveTracking(load.id)}
+                      disabled={updating === load.id || isDemo}
+                      className="btn-secondary py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                      title={isDemo ? "Disabled in demo mode" : ""}
+                    >
+                      {updating === load.id ? "Saving..." : "Save Tracking"}
+                    </button>
+                    {load.tracking_info && (
+                      <span className="text-xs text-success-green">✓ Tracking set</span>
+                    )}
+                  </div>
+
+                  {/* Status action buttons */}
+                  <div className="mt-3 flex gap-2">
+                    {load.status === "assigned" && (
+                      <button
+                        onClick={() => handleStatusChange(load.id, "in_transit")}
+                        disabled={updating === load.id || isDemo}
+                        className="btn-primary py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                        title={isDemo ? "Disabled in demo mode" : ""}
+                      >
+                        {updating === load.id ? "Updating..." : "Mark In Transit"}
+                      </button>
+                    )}
+                    {load.status === "in_transit" && (
+                      <button
+                        onClick={() => handleStatusChange(load.id, "delivered")}
+                        disabled={updating === load.id || isDemo}
+                        className="btn-secondary py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                        title={isDemo ? "Disabled in demo mode" : ""}
+                      >
+                        {updating === load.id ? "Updating..." : "Mark Delivered"}
+                      </button>
+                    )}
+                    {(load.status === "available" || load.status === "assigned") && (
+                      <button
+                        onClick={() => handleStatusChange(load.id, "cancelled")}
+                        disabled={updating === load.id || isDemo}
+                        className="rounded-lg bg-alert-red/10 px-3 py-1.5 text-xs font-medium text-alert-red transition-colors hover:bg-alert-red/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        title={isDemo ? "Disabled in demo mode" : ""}
+                      >
+                        {updating === load.id ? "..." : "Cancel Load"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -3,7 +3,8 @@
 @theme {
   --color-brand-navy: #0F1B2D;
   --color-brand-amber: #F59E0B;
-  --color-brand-steel: #64748B;
+  --color-brand-steel: #475569;
+  --color-steel: #475569;
   --color-off-white: #F8FAFC;
   --color-charcoal: #1E293B;
   --color-light-gray: #E2E8F0;
@@ -68,5 +69,17 @@
 
   .container-section {
     @apply mx-auto max-w-7xl;
+  }
+
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #0F1B2D 0%, #1E3A5F 50%, #0F1B2D 100%);
+  }
+
+  .bg-gradient-accent {
+    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  }
+
+  .badge-demo {
+    @apply inline-flex items-center rounded-full bg-brand-amber/20 px-2.5 py-0.5 text-xs font-medium text-brand-amber;
   }
 }

@@ -109,7 +109,7 @@ function Home() {
               </Link>
               <Link
                 to="/signup?type=shipper"
-                className="btn-secondary border-white text-white hover:bg-white hover:text-brand-navy"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/80 bg-transparent px-8 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-white hover:text-brand-navy"
               >
                 I'm a Shipper
               </Link>
@@ -117,6 +117,20 @@ function Home() {
             <p className="mt-4 text-sm text-white/60">
               No dispatching license required. Free to join.
             </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-6">
+              <Link
+                to="/dashboard/trucker?demo=true"
+                className="text-sm text-white/50 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white/80"
+              >
+                Preview Trucker Dashboard →
+              </Link>
+              <Link
+                to="/dashboard/shipper?demo=true"
+                className="text-sm text-white/50 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white/80"
+              >
+                Preview Shipper Dashboard →
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -347,11 +361,11 @@ function Home() {
                   <span className="text-2xl font-bold text-brand-amber">3</span>
                 </div>
                 <h3 className="text-xl font-semibold text-brand-navy">
-                  Haul & Get Paid
+                  Track & Get Paid
                 </h3>
                 <p className="mt-2 text-steel">
-                  Confirm the load, haul it, and get paid. Our platform handles
-                  the logistics so you can focus on what matters — moving freight.
+                  Shipper marks your load in transit, you haul it, and both parties track in real time.
+                  Get paid fast once delivered.
                 </p>
               </div>
             </div>
@@ -517,7 +531,7 @@ function Home() {
               </Link>
               <Link
                 to="/signup?type=shipper"
-                className="btn-secondary border-white text-white hover:bg-white hover:text-brand-navy"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/80 bg-transparent px-8 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-white hover:text-brand-navy"
               >
                 I'm a Shipper
               </Link>

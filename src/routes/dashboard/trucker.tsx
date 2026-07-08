@@ -1,4 +1,4 @@
-import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
+import { Link, createFileRoute, useRouter, useSearch } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
@@ -10,6 +10,12 @@ import {
   createContract,
   getUserByClerkId,
   createUser,
+  isUserPro,
+  getCommissionPercent,
+  ensureDemoUsers,
+  getDemoUserByRole,
+  DEMO_CLERK_ID,
+  DEMO_TRUCKER_ID,
   type Load,
   type Contract,
 } from "~/lib/db";
@@ -42,12 +48,21 @@ const loadTruckerContracts = createServerFn({ method: "GET" }).handler(async (da
   const activeContracts = contracts.filter((c) => c.status === "active" || c.status === "pending");
   const completedContracts = contracts.filter((c) => c.status === "completed");
 
+  const pro = isUserPro(user.id);
+  const commissionPct = pro ? 8 : 10;
+
   const totalEarnings = completedContracts.reduce((sum, c) => {
-    const commission = c.rate_amount * (c.commission_percent / 100);
+    const commission = c.rate_amount * (commissionPct / 100);
     return sum + c.rate_amount - commission;
   }, 0);
 
-  return { contracts, activeContracts: activeContracts.length, completedContracts: completedContracts.length, totalEarnings };
+  // Fetch the load data for each contract so we can show load status
+  const contractsWithLoads = contracts.map((c) => {
+    const load = getLoad(c.load_id);
+    return { ...c, load };
+  });
+
+  return { contracts: contractsWithLoads, activeContracts: activeContracts.length, completedContracts: completedContracts.length, totalEarnings, isPro: pro, userId: user.id };
 });
 
 const filterAvailableLoads = createServerFn({ method: "GET" }).handler(async (data: unknown) => {
@@ -81,21 +96,24 @@ const bookLoad = createServerFn({ method: "POST" }).handler(async (data: unknown
     });
   }
 
+  // Determine commission based on Pro status
+  const commissionPercent = getCommissionPercent(user.id);
+
   // Look up the load
   const load = getLoad(loadId);
   if (!load) throw new Error("Load not found");
   if (load.status !== "available") throw new Error("This load is no longer available");
 
-  // Create the contract with 10% commission
+  // Create the contract
   const contract = createContract({
     load_id: load.id,
     trucker_id: user.id,
     shipper_id: load.shipper_id,
     rate_amount: load.rate_amount,
-    commission_percent: 10,
+    commission_percent: commissionPercent,
   });
 
-  return { contract, loadTitle: load.title };
+  return { contract, loadTitle: load.title, commissionPercent };
 });
 
 // ---------------------------------------------------------------------------
@@ -105,34 +123,55 @@ const bookLoad = createServerFn({ method: "POST" }).handler(async (data: unknown
 export const Route = createFileRoute("/dashboard/trucker")({
   loader: () => loadTruckerData(),
   component: TruckerDashboard,
+  validateSearch: (search: Record<string, unknown>) => ({
+    demo: search.demo === "true",
+  }),
 });
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
+type ContractWithLoad = Contract & { load?: Load | null };
+
 function TruckerDashboard() {
   const { availableLoads } = Route.useLoaderData();
+  const { demo } = Route.useSearch();
   const { userId, isSignedIn } = useAuth();
   const [activeTab, setActiveTab] = useState<"board" | "stats" | "my-loads">("board");
-  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [contracts, setContracts] = useState<ContractWithLoad[]>([]);
   const [activeContracts, setActiveContracts] = useState(0);
   const [completedContracts, setCompletedContracts] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
+  const [isPro, setIsPro] = useState(false);
   const [contractsLoaded, setContractsLoaded] = useState(false);
 
-  // Load contracts data when userId is available from Clerk
+  const isDemo = demo === true;
+  const effectiveUserId = isDemo ? DEMO_CLERK_ID + "-trucker" : (userId || "");
+
+  // Load contracts data when userId is available from Clerk (or immediately for demo)
   useEffect(() => {
-    if (userId && !contractsLoaded) {
+    if (isDemo) {
+      ensureDemoUsers();
+      loadTruckerContracts({ clerkId: DEMO_CLERK_ID + "-trucker" }).then((data) => {
+        setContracts(data.contracts);
+        setActiveContracts(data.activeContracts);
+        setCompletedContracts(data.completedContracts);
+        setTotalEarnings(data.totalEarnings);
+        setIsPro(data.isPro);
+        setContractsLoaded(true);
+      });
+    } else if (userId && !contractsLoaded) {
       loadTruckerContracts({ clerkId: userId }).then((data) => {
         setContracts(data.contracts);
         setActiveContracts(data.activeContracts);
         setCompletedContracts(data.completedContracts);
         setTotalEarnings(data.totalEarnings);
+        setIsPro(data.isPro);
         setContractsLoaded(true);
       });
     }
-  }, [userId, contractsLoaded]);
+  }, [userId, contractsLoaded, isDemo]);
 
   return (
     <div className="min-h-dvh bg-off-white">
@@ -143,15 +182,45 @@ function TruckerDashboard() {
             <Link to="/">
               <img src="/freightlink-logo.svg" alt="FreightLink" className="h-8 w-auto" />
             </Link>
-            <span className="hidden text-sm font-medium text-brand-amber md:inline">
+            <span className="hidden items-center gap-2 text-sm font-medium text-brand-amber md:inline-flex">
               Trucker Dashboard
+              {isPro && (
+                <span className="rounded-full bg-brand-amber/10 px-2 py-0.5 text-xs font-semibold text-brand-amber">
+                  PRO
+                </span>
+              )}
+              {isDemo && (
+                <span className="rounded-full bg-brand-amber/10 px-2 py-0.5 text-xs font-semibold text-brand-amber">DEMO</span>
+              )}
             </span>
           </div>
-          <Link to="/" className="btn-ghost text-sm">
-            Back to Home
-          </Link>
+          <div className="flex items-center gap-3">
+            {isDemo && (
+              <span className="rounded-lg bg-brand-amber/10 px-3 py-1.5 text-xs font-medium text-brand-amber">
+                Demo Mode — Read-only
+              </span>
+            )}
+            {!isPro && !isDemo && (
+              <Link to="/dashboard/pro" className="btn-cta py-1.5 text-xs">
+                Go Pro
+              </Link>
+            )}
+            <Link to="/" className="btn-ghost text-sm">
+              Back to Home
+            </Link>
+          </div>
         </div>
       </header>
+
+      {/* Demo banner */}
+      {isDemo && (
+        <div className="bg-brand-amber/10 border-b border-brand-amber/20">
+          <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-6 py-2">
+            <span className="text-sm font-medium text-brand-amber">🔍 Demo Mode</span>
+            <span className="text-sm text-steel">— Read-only preview. No actions are saved.</span>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-7xl px-6 py-8">
         {/* Tab Navigation */}
@@ -175,13 +244,14 @@ function TruckerDashboard() {
           ))}
         </div>
 
-        {activeTab === "board" && <LoadBoard initialLoads={availableLoads} clerkId={userId || ""} />}
+        {activeTab === "board" && <LoadBoard initialLoads={availableLoads} clerkId={effectiveUserId} isPro={isPro} isDemo={isDemo} />}
         {activeTab === "stats" && (
           <StatsTab
             activeContracts={activeContracts}
             completedContracts={completedContracts}
             totalEarnings={totalEarnings}
             contracts={contracts}
+            isPro={isPro}
           />
         )}
         {activeTab === "my-loads" && <MyLoadsTab contracts={contracts} />}
@@ -199,13 +269,15 @@ function ConfirmDialog({
   onConfirm,
   onCancel,
   booking,
+  isPro = false,
 }: {
   load: Load;
   onConfirm: () => void;
   onCancel: () => void;
   booking: boolean;
+  isPro?: boolean;
 }) {
-  const commissionPercent = 10;
+  const commissionPercent = isPro ? 8 : 10;
   const commission = load.rate_amount * (commissionPercent / 100);
   const payout = load.rate_amount - commission;
 
@@ -228,6 +300,7 @@ function ConfirmDialog({
           <p>
             <span className="font-medium text-charcoal">Commission ({commissionPercent}%):</span>{" "}
             <span className="text-steel">-${commission.toLocaleString()}</span>
+            {isPro && <span className="ml-1 rounded bg-brand-amber/10 px-1 text-xs font-semibold text-brand-amber">PRO</span>}
           </p>
           <p className="border-t border-light-gray pt-2 text-base font-bold text-brand-navy">
             Your payout: ${payout.toLocaleString()}
@@ -268,7 +341,7 @@ function SuccessToast({ message, onClose }: { message: string; onClose: () => vo
 // Load Board
 // ---------------------------------------------------------------------------
 
-function LoadBoard({ initialLoads, clerkId }: { initialLoads: Load[]; clerkId: string }) {
+function LoadBoard({ initialLoads, clerkId, isPro = false, isDemo = false }: { initialLoads: Load[]; clerkId: string; isPro?: boolean; isDemo?: boolean }) {
   const [loads, setLoads] = useState(initialLoads);
   const [filters, setFilters] = useState({
     origin_state: "",
@@ -335,6 +408,7 @@ function LoadBoard({ initialLoads, clerkId }: { initialLoads: Load[]; clerkId: s
           onConfirm={handleBookLoad}
           onCancel={() => setConfirmingLoad(null)}
           booking={booking}
+          isPro={isPro}
         />
       )}
 
@@ -435,10 +509,12 @@ function LoadBoard({ initialLoads, clerkId }: { initialLoads: Load[]; clerkId: s
                     {load.rate_type === "per_mile" ? "per mile" : "flat rate"}
                   </p>
                   <button
-                    onClick={() => setConfirmingLoad(load)}
-                    className="btn-primary mt-2 text-sm"
+                    onClick={() => !isDemo && setConfirmingLoad(load)}
+                    disabled={isDemo}
+                    className="btn-primary mt-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                    title={isDemo ? "Disabled in demo mode" : ""}
                   >
-                    Book Load
+                    {isDemo ? "Preview Only" : "Book Load"}
                   </button>
                 </div>
               </div>
@@ -459,16 +535,23 @@ function StatsTab({
   completedContracts,
   totalEarnings,
   contracts,
+  isPro = false,
 }: {
   activeContracts: number;
   completedContracts: number;
   totalEarnings: number;
   contracts: Contract[];
+  isPro?: boolean;
 }) {
   return (
     <div>
       <h2 className="text-2xl font-semibold text-brand-navy">My Stats</h2>
       <p className="mt-1 text-sm text-steel">Your performance and earnings overview.</p>
+      {isPro && (
+        <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-brand-amber/10 px-3 py-1 text-xs font-semibold text-brand-amber">
+          ⭐ PRO Member — 8% commission
+        </span>
+      )}
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card">
@@ -496,11 +579,18 @@ function StatsTab({
 // My Loads Tab
 // ---------------------------------------------------------------------------
 
-function MyLoadsTab({ contracts }: { contracts: Contract[] }) {
+function MyLoadsTab({ contracts }: { contracts: ContractWithLoad[] }) {
   const statusColors: Record<string, string> = {
     pending: "badge-info",
     active: "badge-success",
     completed: "badge-success",
+    cancelled: "badge-alert",
+  };
+
+  const loadStatusColors: Record<string, string> = {
+    assigned: "badge-info",
+    in_transit: "badge-info",
+    delivered: "badge-success",
     cancelled: "badge-alert",
   };
 
@@ -509,7 +599,7 @@ function MyLoadsTab({ contracts }: { contracts: Contract[] }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-brand-navy">My Loads</h2>
-          <p className="mt-1 text-sm text-steel">Active, pending, and completed loads.</p>
+          <p className="mt-1 text-sm text-steel">Active, pending, and completed loads with live tracking.</p>
         </div>
       </div>
 
@@ -534,6 +624,11 @@ function MyLoadsTab({ contracts }: { contracts: Contract[] }) {
                     <span className={statusColors[c.status] || "badge-info"}>
                       {c.status}
                     </span>
+                    {c.load && (
+                      <span className={loadStatusColors[c.load.status] || "badge-info"}>
+                        Load: {c.load.status.replace("_", " ")}
+                      </span>
+                    )}
                     <span className="text-sm text-steel">Contract #{c.id.slice(0, 8)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-4 text-sm text-steel">
@@ -541,8 +636,20 @@ function MyLoadsTab({ contracts }: { contracts: Contract[] }) {
                     <span>Your payout: ${(c.rate_amount * (1 - c.commission_percent / 100)).toLocaleString()}</span>
                     <span>Commission: {c.commission_percent}%</span>
                   </div>
+                  {c.load?.tracking_info && (
+                    <div className="mt-2 rounded-lg bg-info-blue/5 px-3 py-2 text-sm">
+                      <span className="font-medium text-info-blue">Tracking: </span>
+                      <span className="text-steel">{c.load.tracking_info}</span>
+                    </div>
+                  )}
                   {c.tracking_info && (
-                    <p className="mt-1 text-xs text-steel">Tracking: {c.tracking_info}</p>
+                    <p className="mt-1 text-xs text-steel">Contract tracking: {c.tracking_info}</p>
+                  )}
+                  {c.load && (
+                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-steel">
+                      <span>{c.load.origin_city}, {c.load.origin_state} → {c.load.dest_city}, {c.load.dest_state}</span>
+                      <span>Pickup: {c.load.pickup_date}</span>
+                    </div>
                   )}
                 </div>
               </div>
