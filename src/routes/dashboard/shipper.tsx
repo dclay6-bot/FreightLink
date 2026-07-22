@@ -12,13 +12,13 @@ import {
   updateLoad,
   updateContractStatus,
   updateLoadStatus,
-  ensureDemoUsers,
-  getDemoUserByRole,
-  DEMO_CLERK_ID,
-  DEMO_SHIPPER_ID,
   type Load,
   type Contract,
 } from "~/lib/db";
+import {
+  DEMO_CLERK_ID,
+  DEMO_SHIPPER_ID,
+} from "~/lib/demo";
 
 // ---------------------------------------------------------------------------
 // Server functions
@@ -99,6 +99,12 @@ const updateLoadTrackInfo = createServerFn({ method: "POST" }).handler(async (da
   return { success: true };
 });
 
+const demoSetupShipper = createServerFn({ method: "GET" }).handler(async () => {
+  const { ensureDemoUsers } = await import("~/lib/demo");
+  ensureDemoUsers();
+  return { success: true };
+});
+
 const updateLoadStatusAction = createServerFn({ method: "POST" }).handler(async (data: unknown) => {
   const { loadId, status, clerkId } = data as { loadId: string; status: string; clerkId: string };
 
@@ -165,17 +171,17 @@ function ShipperDashboard() {
   // Load real data when Clerk userId is available (or immediately for demo)
   useEffect(() => {
     if (isDemo) {
-      // Ensure demo users exist in DB
-      ensureDemoUsers();
       // Load demo data
-      loadShipperData({ clerkId: DEMO_CLERK_ID + "-shipper" }).then((data) => {
-        setLoads(data.loads);
-        setContracts(data.contracts);
-        setActiveLoads(data.activeLoads);
-        setPendingContracts(data.pendingContracts);
-        setTotalLoads(data.totalLoads);
-        setTotalContracts(data.totalContracts);
-        setDataLoaded(true);
+      demoSetupShipper().then(() => {
+        loadShipperData({ clerkId: DEMO_CLERK_ID + "-shipper" }).then((data) => {
+          setLoads(data.loads);
+          setContracts(data.contracts);
+          setActiveLoads(data.activeLoads);
+          setPendingContracts(data.pendingContracts);
+          setTotalLoads(data.totalLoads);
+          setTotalContracts(data.totalContracts);
+          setDataLoaded(true);
+        });
       });
     } else if (userId && !dataLoaded) {
       loadShipperData({ clerkId: userId }).then((data) => {
@@ -201,7 +207,7 @@ function ShipperDashboard() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
             <Link to="/">
-              <img src="/freightlink-logo.svg" alt="FreightLink" className="h-8 w-auto" />
+              <img src="/mountain-hawk-logo.svg" alt="Mountain Hawk Freight" className="h-8 w-auto" />
             </Link>
             <span className="hidden items-center gap-2 text-sm font-medium text-brand-amber md:inline-flex">
               Shipper Dashboard
@@ -288,7 +294,7 @@ function OverviewTab({ activeLoads, pendingContracts, totalLoads, totalContracts
   return (
     <div>
       <h2 className="text-2xl font-semibold text-brand-navy">Dashboard Overview</h2>
-      <p className="mt-1 text-sm text-steel">Welcome to your FreightLink shipper dashboard.</p>
+      <p className="mt-1 text-sm text-steel">Welcome to your Mountain Hawk Freight shipper dashboard.</p>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card">

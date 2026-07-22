@@ -12,17 +12,23 @@ import {
   createUser,
   isUserPro,
   getCommissionPercent,
-  ensureDemoUsers,
-  getDemoUserByRole,
-  DEMO_CLERK_ID,
-  DEMO_TRUCKER_ID,
   type Load,
   type Contract,
 } from "~/lib/db";
+import {
+  DEMO_CLERK_ID,
+  DEMO_TRUCKER_ID,
+} from "~/lib/demo";
 
 // ---------------------------------------------------------------------------
 // Server functions
 // ---------------------------------------------------------------------------
+
+const demoSetup = createServerFn({ method: "GET" }).handler(async () => {
+  const { ensureDemoUsers } = await import("~/lib/demo");
+  ensureDemoUsers();
+  return { success: true };
+});
 
 const loadTruckerData = createServerFn({ method: "GET" }).handler(async () => {
   // No auth needed for loading available loads — the client provides userId
@@ -152,14 +158,15 @@ function TruckerDashboard() {
   // Load contracts data when userId is available from Clerk (or immediately for demo)
   useEffect(() => {
     if (isDemo) {
-      ensureDemoUsers();
-      loadTruckerContracts({ clerkId: DEMO_CLERK_ID + "-trucker" }).then((data) => {
-        setContracts(data.contracts);
-        setActiveContracts(data.activeContracts);
-        setCompletedContracts(data.completedContracts);
-        setTotalEarnings(data.totalEarnings);
-        setIsPro(data.isPro);
-        setContractsLoaded(true);
+      demoSetup().then(() => {
+        loadTruckerContracts({ clerkId: DEMO_CLERK_ID + "-trucker" }).then((data) => {
+          setContracts(data.contracts);
+          setActiveContracts(data.activeContracts);
+          setCompletedContracts(data.completedContracts);
+          setTotalEarnings(data.totalEarnings);
+          setIsPro(data.isPro);
+          setContractsLoaded(true);
+        });
       });
     } else if (userId && !contractsLoaded) {
       loadTruckerContracts({ clerkId: userId }).then((data) => {
@@ -180,7 +187,7 @@ function TruckerDashboard() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
             <Link to="/">
-              <img src="/freightlink-logo.svg" alt="FreightLink" className="h-8 w-auto" />
+              <img src="/mountain-hawk-logo.svg" alt="Mountain Hawk Freight" className="h-8 w-auto" />
             </Link>
             <span className="hidden items-center gap-2 text-sm font-medium text-brand-amber md:inline-flex">
               Trucker Dashboard

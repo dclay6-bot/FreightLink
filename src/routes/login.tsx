@@ -12,8 +12,8 @@ function LoginPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link to="/">
             <img
-              src="/freightlink-logo.svg"
-              alt="FreightLink"
+              src="/mountain-hawk-logo.svg"
+              alt="Mountain Hawk Freight"
               className="h-8 w-auto"
               width={130}
               height={32}
@@ -26,7 +26,7 @@ function LoginPage() {
         <div className="w-full max-w-md">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-brand-navy">Welcome back</h1>
-            <p className="mt-2 text-brand-steel">Sign in to your FreightLink account</p>
+            <p className="mt-2 text-brand-steel">Sign in to your Mountain Hawk Freight account</p>
           </div>
 
           <div className="mt-8">

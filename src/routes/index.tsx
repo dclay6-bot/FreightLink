@@ -13,11 +13,11 @@ const navigation = [
 ];
 
 function Logo({ white }: { white?: boolean }) {
-  const src = white ? "/freightlink-logo-white.svg" : "/freightlink-logo.svg";
+  const src = white ? "/mountain-hawk-logo-white.svg" : "/mountain-hawk-logo.svg";
   return (
     <img
       src={src}
-      alt="FreightLink"
+      alt="Mountain Hawk Freight"
       className="h-10 w-auto"
       width={160}
       height={40}
@@ -169,7 +169,7 @@ function Home() {
                 </h2>
                 <p className="mt-4 text-lg text-steel">
                   Stop wasting hours on load boards or giving away 30% of your
-                  rate to a dispatcher. FreightLink puts you in control — find
+                  rate to a dispatcher. Mountain Hawk Freight puts you in control — find
                   profitable loads instantly and connect directly with shippers.
                 </p>
                 <ul className="mt-8 space-y-4">
@@ -222,7 +222,7 @@ function Home() {
               </div>
               <div className="relative hidden lg:block">
                 <img
-                  src="/freightlink-hero.jpg"
+                  src="/mountain-hawk-hero.jpg"
                   alt="Truck on the highway"
                   className="rounded-2xl object-cover shadow-2xl"
                   width={600}
@@ -242,7 +242,7 @@ function Home() {
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <div className="order-last lg:order-first relative hidden lg:block">
                 <img
-                  src="/freightlink-hero.jpg"
+                  src="/mountain-hawk-hero.jpg"
                   alt="Shipping logistics"
                   className="rounded-2xl object-cover shadow-2xl"
                   width={600}
@@ -523,7 +523,7 @@ function Home() {
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-white/80">
               Join thousands of truckers and shippers who are already
-              connected on FreightLink. Sign up free — no obligations.
+              connected on Mountain Hawk Freight. Sign up free — no obligations.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link to="/signup" className="btn-cta text-base sm:text-lg">
@@ -616,7 +616,7 @@ function Home() {
             </div>
           </div>
           <div className="mt-12 border-t border-white/10 pt-8 text-center text-sm text-white/40">
-            &copy; {new Date().getFullYear()} FreightLink. All rights reserved.
+            &copy; {new Date().getFullYear()} Mountain Hawk Freight. All rights reserved.
           </div>
         </div>
       </footer>

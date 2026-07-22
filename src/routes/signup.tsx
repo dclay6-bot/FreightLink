@@ -12,8 +12,8 @@ function SignupPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link to="/">
             <img
-              src="/freightlink-logo.svg"
-              alt="FreightLink"
+              src="/mountain-hawk-logo.svg"
+              alt="Mountain Hawk Freight"
               className="h-8 w-auto"
               width={130}
               height={32}
@@ -25,7 +25,7 @@ function SignupPage() {
       <main className="flex flex-1 items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-brand-navy">Get started with FreightLink</h1>
+            <h1 className="text-2xl font-bold text-brand-navy">Get started with Mountain Hawk Freight</h1>
             <p className="mt-2 text-brand-steel">
               Create your account — it's free and takes less than 2 minutes.
             </p>

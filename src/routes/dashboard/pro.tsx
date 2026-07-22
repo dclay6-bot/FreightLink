@@ -69,7 +69,7 @@ function ProPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
             <Link to="/">
-              <img src="/freightlink-logo.svg" alt="FreightLink" className="h-8 w-auto" />
+              <img src="/mountain-hawk-logo.svg" alt="Mountain Hawk Freight" className="h-8 w-auto" />
             </Link>
             <span className="hidden text-sm font-medium text-brand-amber md:inline">
               Pro Plan
@@ -116,13 +116,13 @@ function ProPage() {
                 Go Pro — Unlock More Loads, Lower Fees
               </h1>
               <p className="mx-auto mt-3 max-w-2xl text-lg text-steel">
-                Upgrade to FreightLink Pro and get priority access to the best loads, reduced commission rates, and faster payouts.
+                Upgrade to Mountain Hawk Freight Pro and get priority access to the best loads, reduced commission rates, and faster payouts.
               </p>
             </div>
 
             {/* Pricing */}
             <div className="card mx-auto mt-10 max-w-sm text-center">
-              <p className="text-sm font-medium text-steel">FreightLink Pro</p>
+              <p className="text-sm font-medium text-steel">Mountain Hawk Freight Pro</p>
               <p className="mt-2 text-5xl font-bold text-brand-navy">
                 $29.<span className="text-2xl">99</span>
               </p>
