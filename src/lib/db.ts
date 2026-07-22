@@ -1,5 +1,5 @@
 /**
- * FreightLink Database Layer
+ * Mountain Hawk Freight Database Layer
  *
  * Server-side database helper functions using team-db CLI via the Turso-shared SQLite database.
  * These are server-only utilities — import and use them inside createServerFn() handlers.

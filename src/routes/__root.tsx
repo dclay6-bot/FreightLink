@@ -17,19 +17,19 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "FreightLink — Direct. Reliable. Connected." },
+      { title: "Mountain Hawk Freight — Direct. Reliable. Connected." },
       {
         name: "description",
         content:
           "A digital freight-matching platform connecting independent truckers directly with shippers and brokers. No dispatching license needed.",
       },
-      { property: "og:title", content: "FreightLink — Direct. Reliable. Connected." },
+      { property: "og:title", content: "Mountain Hawk Freight — Direct. Reliable. Connected." },
       {
         property: "og:description",
         content:
           "Find your next load in seconds. Built for owner-operators.",
       },
-      { property: "og:image", content: "/freightlink-og-image.png" },
+      { property: "og:image", content: "/mountain-hawk-og-image.png" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -48,8 +48,8 @@ export const Route = createRootRoute({
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
       },
-      { rel: "icon", type: "image/svg+xml", href: "/freightlink-icon.svg" },
-      { rel: "apple-touch-icon", href: "/freightlink-icon.png" },
+      { rel: "icon", type: "image/svg+xml", href: "/mountain-hawk-icon.svg" },
+      { rel: "apple-touch-icon", href: "/mountain-hawk-icon.png" },
     ],
   }),
   notFoundComponent: () => (

@@ -1,5 +1,5 @@
 /**
- * FreightLink Authentication Layer
+ * Mountain Hawk Freight Authentication Layer
  *
  * Clerk-based auth utilities for route protection and session management.
  */
@@ -58,7 +58,7 @@ export async function verifyAuthSession(
     });
     return { sub: payload.sub };
   } catch (err) {
-    console.error("[FreightLink Auth] Token verification failed:", err);
+    console.error("[Mountain Hawk Freight Auth] Token verification failed:", err);
     return null;
   }
 }

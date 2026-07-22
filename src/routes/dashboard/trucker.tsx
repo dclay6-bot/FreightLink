@@ -141,7 +141,7 @@ function TruckerDashboard() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
             <Link to="/">
-              <img src="/freightlink-logo.svg" alt="FreightLink" className="h-8 w-auto" />
+              <img src="/mountain-hawk-logo.svg" alt="Mountain Hawk Freight" className="h-8 w-auto" />
             </Link>
             <span className="hidden text-sm font-medium text-brand-amber md:inline">
               Trucker Dashboard

@@ -10,7 +10,7 @@ import {
   createUser,
   type Load,
   type Contract,
-} from "~/lib/db";
+} from "~/lib/db.server";
 
 // ---------------------------------------------------------------------------
 // Server functions
@@ -129,7 +129,7 @@ function ShipperDashboard() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
             <Link to="/">
-              <img src="/freightlink-logo.svg" alt="FreightLink" className="h-8 w-auto" />
+              <img src="/mountain-hawk-logo.svg" alt="Mountain Hawk Freight" className="h-8 w-auto" />
             </Link>
             <span className="hidden text-sm font-medium text-brand-amber md:inline">
               Shipper Dashboard
@@ -194,7 +194,7 @@ function OverviewTab({ activeLoads, pendingContracts, totalLoads, totalContracts
   return (
     <div>
       <h2 className="text-2xl font-semibold text-brand-navy">Dashboard Overview</h2>
-      <p className="mt-1 text-sm text-steel">Welcome to your FreightLink shipper dashboard.</p>
+      <p className="mt-1 text-sm text-steel">Welcome to your Mountain Hawk Freight shipper dashboard.</p>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card">
