@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Mountain peaks -->
+  <polygon points="15,75 35,35 55,75" fill="#0F1B2D"/>
+  <polygon points="35,75 55,40 75,75" fill="#F59E0B"/>
+  <polygon points="55,75 75,50 95,75" fill="#0F1B2D"/>
+  <!-- Hawk silhouette -->
+  <path d="M50 5 C35 5, 15 18, 2 28 C12 18, 25 10, 42 12 L50 5 Z" fill="#0F1B2D"/>
+  <path d="M50 5 C65 5, 85 18, 98 28 C88 18, 75 10, 58 12 L50 5 Z" fill="#0F1B2D"/>
+  <ellipse cx="50" cy="20" rx="8" ry="5" fill="#0F1B2D"/>
+  <polygon points="46,24 50,35 54,24" fill="#0F1B2D"/>
+</svg>

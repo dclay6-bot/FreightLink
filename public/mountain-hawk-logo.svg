@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 140" fill="none">
+  <!-- Hawk icon -->
+  <g transform="translate(5, 10)">
+    <!-- Mountain peaks -->
+    <polygon points="10,70 35,25 60,70" fill="#0F1B2D"/>
+    <polygon points="40,70 65,30 90,70" fill="#F59E0B"/>
+    <polygon points="70,70 95,40 120,70" fill="#0F1B2D"/>
+    <!-- Hawk silhouette above mountains -->
+    <path d="M60 8 C40 8, 20 20, 5 28 C15 18, 30 12, 50 12 L60 8 Z" fill="#0F1B2D"/>
+    <path d="M60 8 C80 8, 100 20, 115 28 C105 18, 90 12, 70 12 L60 8 Z" fill="#0F1B2D"/>
+    <path d="M45 14 C50 10, 55 8, 60 8 L60 14 C55 16, 50 18, 45 14 Z" fill="#F59E0B"/>
+    <!-- Body -->
+    <ellipse cx="60" cy="22" rx="10" ry="6" fill="#0F1B2D"/>
+    <!-- Tail -->
+    <polygon points="55,26 60,38 65,26" fill="#0F1B2D"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="140" y="55" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-weight="800" font-size="28" fill="#0F1B2D" letter-spacing="1">MOUNTAIN HAWK</text>
+  <text x="140" y="90" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-weight="600" font-size="22" fill="#F59E0B" letter-spacing="4">FREIGHT</text>
+</svg>
