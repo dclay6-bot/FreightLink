@@ -10,7 +10,7 @@ import {
   createUser,
   type Load,
   type Contract,
-} from "~/lib/db.server";
+} from "~/lib/db";
 
 // ---------------------------------------------------------------------------
 // Server functions
