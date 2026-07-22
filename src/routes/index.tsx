@@ -109,7 +109,7 @@ function Home() {
               </Link>
               <Link
                 to="/signup?type=shipper"
-                className="btn-secondary border-white text-white hover:bg-white hover:text-brand-navy"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/80 bg-transparent px-8 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-white hover:text-brand-navy"
               >
                 I'm a Shipper
               </Link>
@@ -517,7 +517,7 @@ function Home() {
               </Link>
               <Link
                 to="/signup?type=shipper"
-                className="btn-secondary border-white text-white hover:bg-white hover:text-brand-navy"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/80 bg-transparent px-8 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-white hover:text-brand-navy"
               >
                 I'm a Shipper
               </Link>
