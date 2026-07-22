@@ -100,8 +100,19 @@ const updateLoadTrackInfo = createServerFn({ method: "POST" }).handler(async (da
 });
 
 const demoSetupShipper = createServerFn({ method: "GET" }).handler(async () => {
-  const { ensureDemoUsers } = await import("~/lib/demo");
-  ensureDemoUsers();
+  // Ensure demo shipper user exists in DB
+  const existing = getUserByClerkId(`${DEMO_CLERK_ID}-shipper`);
+  if (!existing) {
+    createUser({
+      id: DEMO_SHIPPER_ID,
+      clerk_id: `${DEMO_CLERK_ID}-shipper`,
+      email: "demo-shipper@freightlink.app",
+      first_name: "Demo",
+      last_name: "Shipper",
+      role: "shipper",
+      is_pro: 1,
+    });
+  }
   return { success: true };
 });
 
