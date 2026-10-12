@@ -19,30 +19,18 @@ import {
   DEMO_CLERK_ID,
   DEMO_TRUCKER_ID,
 } from "~/lib/demo";
+import {
+  DEMO_AVAILABLE_LOADS,
+  DEMO_TRUCKER_CONTRACTS,
+} from "~/lib/demoData";
 
 // ---------------------------------------------------------------------------
 // Server functions
 // ---------------------------------------------------------------------------
 
-const demoSetup = createServerFn({ method: "GET" }).handler(async () => {
-  // Ensure demo trucker user exists in DB
-  const existing = getUserByClerkId(`${DEMO_CLERK_ID}-trucker`);
-  if (!existing) {
-    createUser({
-      id: DEMO_TRUCKER_ID,
-      clerk_id: `${DEMO_CLERK_ID}-trucker`,
-      email: "demo-trucker@freightlink.app",
-      first_name: "Demo",
-      last_name: "Trucker",
-      role: "trucker",
-      is_pro: 1,
-    });
-  }
-  return { success: true };
-});
-
 const loadTruckerData = createServerFn({ method: "GET" }).handler(async () => {
-  // No auth needed for loading available loads — the client provides userId
+  // Fetches the load board server-side. Demo mode never reaches this function —
+  // the loader short-circuits to hardcoded data before any DB (team-db) access.
   const availableLoads = getAvailableLoads();
   return { availableLoads, contracts: [], activeContracts: 0, completedContracts: 0, totalEarnings: 0 };
 });
@@ -53,7 +41,7 @@ const loadTruckerContracts = createServerFn({ method: "GET" }).handler(async (da
   let user = getUserByClerkId(clerkId);
   if (!user) {
     user = createUser({
-      email: clerkId + "@freightlink.app",
+      email: clerkId + "@mountainhawkfreight.com",
       first_name: "Trucker",
       last_name: "User",
       role: "trucker",
@@ -101,11 +89,16 @@ const filterAvailableLoads = createServerFn({ method: "GET" }).handler(async (da
 const bookLoad = createServerFn({ method: "POST" }).handler(async (data: unknown) => {
   const { loadId, clerkId } = data as { loadId: string; clerkId: string };
 
+  // Demo mode is read-only — never touch the DB.
+  if (clerkId === `${DEMO_CLERK_ID}-trucker` || clerkId === DEMO_TRUCKER_ID) {
+    throw new Error("Demo mode is read-only");
+  }
+
   // Get or create the trucker user record
   let user = getUserByClerkId(clerkId);
   if (!user) {
     user = createUser({
-      email: clerkId + "@freightlink.app",
+      email: clerkId + "@mountainhawkfreight.com",
       first_name: "Trucker",
       last_name: "User",
       role: "trucker",
@@ -138,10 +131,29 @@ const bookLoad = createServerFn({ method: "POST" }).handler(async (data: unknown
 // ---------------------------------------------------------------------------
 
 export const Route = createFileRoute("/dashboard/trucker")({
-  loader: () => loadTruckerData(),
+  loaderDeps: ({ search }) => ({ isDemo: search.demo }),
+  loader: ({ deps }) => {
+    // Demo mode is fully self-contained: no DB (team-db) dependency and no
+    // server-function round-trip. Return hardcoded sample data directly.
+    if (deps.isDemo) {
+      return {
+        availableLoads: DEMO_AVAILABLE_LOADS,
+        contracts: [],
+        activeContracts: 0,
+        completedContracts: 0,
+        totalEarnings: 0,
+      };
+    }
+    // Non-demo: fetch the load board via a server function (loaders also run
+    // in the browser during client-side navigation, so DB access stays inside
+    // createServerFn handlers).
+    return loadTruckerData();
+  },
   component: TruckerDashboard,
   validateSearch: (search: Record<string, unknown>) => ({
-    demo: search.demo === "true",
+    // TanStack's default search parser JSON-parses values, so `?demo=true`
+    // arrives here as boolean `true` (not the string "true").
+    demo: search.demo === true || search.demo === "true",
   }),
 });
 
@@ -169,16 +181,21 @@ function TruckerDashboard() {
   // Load contracts data when userId is available from Clerk (or immediately for demo)
   useEffect(() => {
     if (isDemo) {
-      demoSetup().then(() => {
-        loadTruckerContracts({ clerkId: DEMO_CLERK_ID + "-trucker" }).then((data) => {
-          setContracts(data.contracts);
-          setActiveContracts(data.activeContracts);
-          setCompletedContracts(data.completedContracts);
-          setTotalEarnings(data.totalEarnings);
-          setIsPro(data.isPro);
-          setContractsLoaded(true);
-        });
-      });
+      // Demo mode is fully client-safe: compute stats directly from the
+      // hardcoded sample contracts — no DB, no server-function round-trip.
+      const demoContracts = DEMO_TRUCKER_CONTRACTS as ContractWithLoad[];
+      const active = demoContracts.filter((c) => c.status === "active" || c.status === "pending");
+      const completed = demoContracts.filter((c) => c.status === "completed");
+      const earnings = completed.reduce((sum, c) => {
+        const commission = c.rate_amount * (c.commission_percent / 100);
+        return sum + c.rate_amount - commission;
+      }, 0);
+      setContracts(demoContracts);
+      setActiveContracts(active.length);
+      setCompletedContracts(completed.length);
+      setTotalEarnings(earnings);
+      setIsPro(true);
+      setContractsLoaded(true);
     } else if (userId && !contractsLoaded) {
       loadTruckerContracts({ clerkId: userId }).then((data) => {
         setContracts(data.contracts);
@@ -374,6 +391,17 @@ function LoadBoard({ initialLoads, clerkId, isPro = false, isDemo = false }: { i
   const applyFilters = async () => {
     setFiltering(true);
     try {
+      if (isDemo) {
+        // Demo mode is self-contained: filter the hardcoded sample data locally.
+        const filtered = initialLoads.filter((l) => {
+          if (filters.origin_state && l.origin_state !== filters.origin_state) return false;
+          if (filters.dest_state && l.dest_state !== filters.dest_state) return false;
+          if (filters.equipment_type && l.equipment_type !== filters.equipment_type) return false;
+          return true;
+        });
+        setLoads(filtered);
+        return;
+      }
       const f: Record<string, string> = {};
       if (filters.origin_state) f.origin_state = filters.origin_state;
       if (filters.dest_state) f.dest_state = filters.dest_state;
