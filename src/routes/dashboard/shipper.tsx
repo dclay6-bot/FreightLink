@@ -19,15 +19,30 @@ import {
   DEMO_CLERK_ID,
   DEMO_SHIPPER_ID,
 } from "~/lib/demo";
+import {
+  DEMO_SHIPPER_LOADS,
+  DEMO_SHIPPER_CONTRACTS,
+} from "~/lib/demoData";
 
 // ---------------------------------------------------------------------------
 // Server functions
 // ---------------------------------------------------------------------------
 
-const loadShipperStats = createServerFn({ method: "GET" }).handler(async () => {
-  // No auth needed in loader — returns empty data; client populates later
-  return { activeLoads: 0, pendingContracts: 0, totalLoads: 0, totalContracts: 0, loads: [], contracts: [] };
-});
+function shipperDemoPayload() {
+  const loads = DEMO_SHIPPER_LOADS;
+  const contracts = DEMO_SHIPPER_CONTRACTS;
+  const activeLoads = loads.filter((l) => l.status === "available" || l.status === "assigned");
+  const pendingContracts = contracts.filter((c) => c.status === "pending");
+  return {
+    loads,
+    contracts,
+    activeLoads: activeLoads.length,
+    pendingContracts: pendingContracts.length,
+    totalLoads: loads.length,
+    totalContracts: contracts.length,
+    userId: DEMO_SHIPPER_ID,
+  };
+}
 
 const loadShipperData = createServerFn({ method: "GET" }).handler(async (data: unknown) => {
   const { clerkId } = data as { clerkId: string };
@@ -35,7 +50,7 @@ const loadShipperData = createServerFn({ method: "GET" }).handler(async (data: u
   let user = getUserByClerkId(clerkId);
   if (!user) {
     user = createUser({
-      email: clerkId + "@freightlink.app",
+      email: clerkId + "@mountainhawkfreight.com",
       first_name: "Shipper",
       last_name: "User",
       role: "shipper",
@@ -71,10 +86,15 @@ const postNewLoad = createServerFn({ method: "POST" }).handler(async (data: unkn
     rate_type?: "flat" | "per_mile";
   };
 
+  // Demo mode is read-only — never touch the DB.
+  if (clerkId === `${DEMO_CLERK_ID}-shipper` || clerkId === DEMO_SHIPPER_ID) {
+    throw new Error("Demo mode is read-only");
+  }
+
   let user = getUserByClerkId(clerkId);
   if (!user) {
     user = createUser({
-      email: clerkId + "@freightlink.app",
+      email: clerkId + "@mountainhawkfreight.com",
       first_name: "Shipper",
       last_name: "User",
       role: "shipper",
@@ -88,6 +108,11 @@ const postNewLoad = createServerFn({ method: "POST" }).handler(async (data: unkn
 const updateLoadTrackInfo = createServerFn({ method: "POST" }).handler(async (data: unknown) => {
   const { loadId, trackingInfo, clerkId } = data as { loadId: string; trackingInfo: string; clerkId: string };
 
+  // Demo mode is read-only — never touch the DB.
+  if (clerkId === `${DEMO_CLERK_ID}-shipper` || clerkId === DEMO_SHIPPER_ID) {
+    throw new Error("Demo mode is read-only");
+  }
+
   let user = getUserByClerkId(clerkId);
   if (!user) throw new Error("Unauthorized");
   if (user.role !== "shipper") throw new Error("Only shippers can update tracking info");
@@ -99,25 +124,13 @@ const updateLoadTrackInfo = createServerFn({ method: "POST" }).handler(async (da
   return { success: true };
 });
 
-const demoSetupShipper = createServerFn({ method: "GET" }).handler(async () => {
-  // Ensure demo shipper user exists in DB
-  const existing = getUserByClerkId(`${DEMO_CLERK_ID}-shipper`);
-  if (!existing) {
-    createUser({
-      id: DEMO_SHIPPER_ID,
-      clerk_id: `${DEMO_CLERK_ID}-shipper`,
-      email: "demo-shipper@freightlink.app",
-      first_name: "Demo",
-      last_name: "Shipper",
-      role: "shipper",
-      is_pro: 1,
-    });
-  }
-  return { success: true };
-});
-
 const updateLoadStatusAction = createServerFn({ method: "POST" }).handler(async (data: unknown) => {
   const { loadId, status, clerkId } = data as { loadId: string; status: string; clerkId: string };
+
+  // Demo mode is read-only — never touch the DB.
+  if (clerkId === `${DEMO_CLERK_ID}-shipper` || clerkId === DEMO_SHIPPER_ID) {
+    throw new Error("Demo mode is read-only");
+  }
 
   let user = getUserByClerkId(clerkId);
   if (!user) throw new Error("Unauthorized");
@@ -151,10 +164,21 @@ const updateLoadStatusAction = createServerFn({ method: "POST" }).handler(async 
 // ---------------------------------------------------------------------------
 
 export const Route = createFileRoute("/dashboard/shipper")({
-  loader: () => loadShipperStats(),
+  loaderDeps: ({ search }) => ({ isDemo: search.demo }),
+  loader: ({ deps }) => {
+    // Demo mode is fully self-contained: no DB (team-db) dependency and no
+    // server-function round-trip. Return hardcoded sample data directly.
+    if (deps.isDemo) {
+      return shipperDemoPayload();
+    }
+    // No auth needed in loader — returns empty data; client populates later.
+    return { activeLoads: 0, pendingContracts: 0, totalLoads: 0, totalContracts: 0, loads: [], contracts: [] };
+  },
   component: ShipperDashboard,
   validateSearch: (search: Record<string, unknown>) => ({
-    demo: search.demo === "true",
+    // TanStack's default search parser JSON-parses values, so `?demo=true`
+    // arrives here as boolean `true` (not the string "true").
+    demo: search.demo === true || search.demo === "true",
   }),
 });
 
@@ -182,18 +206,16 @@ function ShipperDashboard() {
   // Load real data when Clerk userId is available (or immediately for demo)
   useEffect(() => {
     if (isDemo) {
-      // Load demo data
-      demoSetupShipper().then(() => {
-        loadShipperData({ clerkId: DEMO_CLERK_ID + "-shipper" }).then((data) => {
-          setLoads(data.loads);
-          setContracts(data.contracts);
-          setActiveLoads(data.activeLoads);
-          setPendingContracts(data.pendingContracts);
-          setTotalLoads(data.totalLoads);
-          setTotalContracts(data.totalContracts);
-          setDataLoaded(true);
-        });
-      });
+      // Demo mode is fully client-safe: use the hardcoded sample payload
+      // directly — no DB, no server-function round-trip.
+      const data = shipperDemoPayload();
+      setLoads(data.loads);
+      setContracts(data.contracts);
+      setActiveLoads(data.activeLoads);
+      setPendingContracts(data.pendingContracts);
+      setTotalLoads(data.totalLoads);
+      setTotalContracts(data.totalContracts);
+      setDataLoaded(true);
     } else if (userId && !dataLoaded) {
       loadShipperData({ clerkId: userId }).then((data) => {
         setLoads(data.loads);
